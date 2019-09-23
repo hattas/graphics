@@ -3,6 +3,7 @@
 #include <GL/glu.h>
 #include <GL/glut.h>
 #include <iostream>
+#include <math.h>
 
 struct Point {
 	GLfloat x, y;
@@ -12,9 +13,14 @@ struct Point {
 const int numPoints = 4;
 const int screenW = 400;
 const int screenH = 400;
+const double tInitial = 0;
+const double tFinal = 1;
+const int numTSteps = 100;
+const double stepSize = (tFinal - tInitial) / numTSteps;
 
 // globals
 Point points[numPoints];
+int ixAnimation = 0; // frame number of animation
 
 void myInit(void) {
 	glClearColor(1, 1, 1, 0);
@@ -32,9 +38,8 @@ void myInit(void) {
 }
 
 void pointsLoop(void) {
-	for (int i = 0; i < numPoints; i++) {
+	for (int i = 0; i < numPoints; i++)
 		glVertex2f(points[i].x, points[i].y);
-	}
 }
 
 void drawFourPoints(void) {
@@ -48,11 +53,41 @@ void drawFourPoints(void) {
 }
 
 void myDisplay(void) {
+	// don't go past end of animation
+	if (ixAnimation > numTSteps)
+		ixAnimation = numTSteps;
+
 	glClear(GL_COLOR_BUFFER_BIT);
-	
+
 	drawFourPoints();
-	
+
+	// bezier equation:
+	glColor3f(1, 0, 0);
+	glBegin(GL_LINE_STRIP);
+	double tMiddle = ixAnimation * stepSize;
+	double x, y;
+	for (double t = tInitial; t <= tMiddle; t += stepSize) {
+		x = pow(1 - t, 3) * points[0].x + 3 * pow(1 - t, 2) * t * points[1].x + 3 * (1 - t) * pow(t, 2) * points[2].x + pow(t, 3) * points[3].x;
+		y = pow(1 - t, 3) * points[0].y + 3 * pow(1 - t, 2) * t * points[1].y + 3 * (1 - t) * pow(t, 2) * points[2].y + pow(t, 3) * points[3].y;
+		glVertex2f(x, y);
+	}
+	glEnd();
+	ixAnimation++;
+	if (ixAnimation <= numTSteps) {
+		glutPostRedisplay();
+	}
+
 	glutSwapBuffers();
+}
+
+void myKeyboard(unsigned char theKey, int mouseX, int mouseY) {
+	switch (theKey) {
+	case 'r':
+		ixAnimation = 0;
+		glutPostRedisplay();
+		break;
+	default: break;
+	}
 }
 
 int main(int argc, char** argv) {
@@ -64,6 +99,7 @@ int main(int argc, char** argv) {
 
 	// register the callback functions
 	glutDisplayFunc(myDisplay);
+	glutKeyboardFunc(myKeyboard);
 
 	myInit();
 	glutMainLoop();
