@@ -11,8 +11,8 @@ struct Point {
 
 // constants
 const int numPoints = 4;
-const int screenW = 400;
-const int screenH = 400;
+const int screenW = 600;
+const int screenH = 600;
 const double tInitial = 0;
 const double tFinal = 1;
 const int numFrames = 200;
@@ -36,10 +36,10 @@ void myInit(void) {
 	gluOrtho2D(0.0, screenW, 0.0, screenH);
 
 	// initial control points
-	p[0] = { 50, 50 };
-	p[1] = { 300, 100 };
-	p[2] = { 100, 300 };
-	p[3] = { 350, 350 };
+	p[0] = { 100, 100 };
+	p[1] = { 400, 200 };
+	p[2] = { 200, 400 };
+	p[3] = { 500, 500 };
 }
 
 void pointsLoop(void) {
