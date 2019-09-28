@@ -10,6 +10,10 @@ struct Point {
 	double x, y;
 };
 
+struct Color {
+	double r, g, b;
+};
+
 // constants
 const int screenW = 400, screenH = 400;
 const int numPoints = 12;
@@ -17,13 +21,15 @@ const double tInitial = 0;
 const double tFinal = 1;
 const int numFrames = 200;
 const double stepSize = (tFinal - tInitial) / numFrames;
+const Color blue{ 0, 0, 1 };
+const Color yellow{ 1, 1, 0 };
 
 char filenameM[] = "m.dat";
 char filenameU[] = "u.dat";
 int iFrame = 0; // frame number of animation
-int animationDirection = 1;
-int loopAnimation = 1;
-int animate = 1;
+int animationDirection = 1; // 1 or -1 - 1 means animating from m to u
+int loopAnimation = 1; // boolean to loop animation when we reach m or u
+int animate = 1; // play or pause animation
 
 // globals
 Point mPoints[numPoints];
@@ -86,6 +92,11 @@ Point lerp(Point a, Point b, double t) {
 	return c;
 }
 
+Color lerp(Color a, Color b, double t) {
+	Color c = { a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t };
+	return c;
+}
+
 void drawTween(double t) {
 	Point lerped;
 	glBegin(GL_LINE_LOOP);
@@ -101,15 +112,20 @@ void getNextFrameIndex() {
 	if (iFrame < 0) {
 		iFrame = 0;
 		animationDirection = 1;
+		if (!loopAnimation)
+			animate = 0;
 	}
 	else if (iFrame >= numFrames) {
 		iFrame = numFrames - 1;
 		animationDirection = -1;
+		if (!loopAnimation)
+			animate = 0;
 	}
 }
 
 void setColor(double t) {
-	glColor3f(0, 0, 0);
+	Color lerpedColor = lerp(blue, yellow, t);
+	glColor3f(lerpedColor.r, lerpedColor.g, lerpedColor.b);
 }
 
 void display(void) {
@@ -121,12 +137,41 @@ void display(void) {
 
 	glutSwapBuffers();
 
-	getNextFrameIndex();
+	if (animate) {
+		getNextFrameIndex();
+	}
 
 	glutPostRedisplay();
 }
 
-
+void myKeyboard(unsigned char theKey, int mouseX, int mouseY) {
+	switch(theKey) {
+	case 'm':
+		animationDirection = 1;
+		iFrame = 0;
+		loopAnimation = 0;
+		glutPostRedisplay();
+		break;
+	case 'u':
+		animationDirection = -1;
+		iFrame = numFrames - 1;
+		loopAnimation = 0;
+		glutPostRedisplay();
+		break;
+	case 'a':
+		animate = 1;
+		loopAnimation = 1;
+		glutPostRedisplay();
+		break;
+	case 's':
+		animate = 0;
+		break;
+	case 'e':
+		exit(0);
+		break;
+	default: break;
+	}
+}
 
 int main(int argc, char** argv) {
 	glutInit(&argc, argv);
@@ -135,6 +180,7 @@ int main(int argc, char** argv) {
 	glutInitWindowPosition(100, 100);
 	glutCreateWindow("HW 4 MU Tween");
 	glutDisplayFunc(display);
+	glutKeyboardFunc(myKeyboard);
 	init();
 	glutMainLoop();
 	return 0;
