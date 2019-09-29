@@ -134,10 +134,7 @@ void calculateSlopes() {
 	int i, j;
 	for (i = 0; i < numPoints; i++) {
 		j = (i + 1) % numPoints;
-		if (points[j].x - points[i].x == 0)
-			slopes[i] = 0;
-		else
-			slopes[i] = (points[j].y - points[i].y) / (points[j].x - points[i].x);
+		slopes[i] = (points[j].y - points[i].y) / (points[j].x - points[i].x);
 
 		perpendicularSlopes[i] = -1 / slopes[i];
 		cout << "slopes[" << i << "] = " << slopes[i] << "\n";
@@ -210,7 +207,7 @@ void myMouse(int button, int state, int x, int y) {
 			// if they are, reset
 			if (numPointsSelected == numPoints) {
 				calculateSlopes();
-				if (slopes[0] == slopes[1])
+				if ((isnan(slopes[0]) && isnan(slopes[1])) || slopes[0] == slopes[1])
 					numPointsSelected = 0;
 				else
 					calculateStuff();
