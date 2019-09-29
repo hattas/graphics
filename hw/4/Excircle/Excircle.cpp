@@ -93,6 +93,10 @@ void drawBisectors() {
 		glVertex2d(midPoints[i].x, midPoints[i].y);
 		glVertex2d(bisectPoints[i].x, bisectPoints[i].y);
 		glEnd();
+		glBegin(GL_LINE_STRIP);
+		glVertex2d(midPoints[i].x, midPoints[i].y);
+		glVertex2d(center.x, center.y);
+		glEnd();
 	}
 }
 
@@ -136,7 +140,8 @@ void calculateSlopes() {
 			slopes[i] = (points[j].y - points[i].y) / (points[j].x - points[i].x);
 
 		perpendicularSlopes[i] = -1 / slopes[i];
-		cout << "slopes[" << i << "] = " << slopes[i] << " " << "perpendicularSlopes[" << i << "] = " << perpendicularSlopes[i] << "\n";
+		cout << "slopes[" << i << "] = " << slopes[i] << "\n";
+		cout << "perpendicularSlopes[" << i << "] = " << perpendicularSlopes[i] << "\n";
 	}
 }
 
@@ -192,9 +197,14 @@ void calculateStuff() {
 void myMouse(int button, int state, int x, int y) {
 	// left button clicked
 	if (state == GLUT_DOWN && button == GLUT_LEFT_BUTTON) {
+		if (numPointsSelected == numPoints) {
+			numPointsSelected = 0;
+		}
+
 		// if we didnt select all the points yet
 		if (numPointsSelected < numPoints) {
 			points[numPointsSelected] = { (double)x, screenH - (double)y };
+			cout << "points[" << numPointsSelected << "] = " << points[numPointsSelected] << "\n";
 			numPointsSelected++;
 			// if user drew all points, check if they are collinear
 			// if they are, reset
@@ -207,6 +217,9 @@ void myMouse(int button, int state, int x, int y) {
 			}
 			glutPostRedisplay();
 		}
+	}
+	else if (state == GLUT_DOWN && button == GLUT_RIGHT_BUTTON) {
+		numPointsSelected = 0;
 	}
 }
 
