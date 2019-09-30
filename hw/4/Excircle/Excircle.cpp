@@ -21,6 +21,16 @@ const int screenW = 600, screenH = 600;
 const int numPoints = 3;
 const double PI = 3.1415926535897932384626433832795;
 
+// animation stage enums
+const int triangleStage = 1;
+const int midpointStage = triangleStage + 3;
+const int bisectorStage = midpointStage + 3;
+const int centerStage = bisectorStage + 3;
+const int radiusStage = centerStage + 1;
+const int circleStage = radiusStage + 1;
+const int maxAnimationStage = circleStage;
+
+
 // globals
 Point points[numPoints];
 Point midPoints[numPoints];
@@ -30,6 +40,7 @@ Point bisectPoints[numPoints];
 int numPointsSelected = 0;
 Point center;
 double radius;
+int animationStage = 0;
 
 void init(void) {
 	// open gl init
@@ -48,12 +59,6 @@ Point lerp(Point a, Point b, double t) {
 }
 
 void drawPoints() {
-	glColor3d(0.7, 0.7, 0.7);
-	glBegin(GL_LINE_LOOP);
-	for (int i = 0; i < numPointsSelected; i++) {
-		glVertex2d(points[i].x, points[i].y);
-	}
-	glEnd();
 	glColor3d(0, 0, 0);
 	glBegin(GL_POINTS);
 	for (int i = 0; i < numPointsSelected; i++) {
@@ -62,10 +67,19 @@ void drawPoints() {
 	glEnd();
 }
 
-void drawMidPoints() {
+void drawTriangle(int numSidesToDraw) {
+	glColor3d(0.7, 0.7, 0.7);
+	glBegin(GL_LINE_STRIP);
+	for (int i = 0; i <= numSidesToDraw && i <= numPoints; i++) {
+		glVertex2d(points[i % numPoints].x, points[i % numPoints].y);
+	}
+	glEnd();
+}
+
+void drawMidPoints(int numMidpointsToDraw) {
 	glColor3d(1, 0, 0);
 	glBegin(GL_POINTS);
-	for (int i = 0; i < numPoints; i++) {
+	for (int i = 0; i < numMidpointsToDraw && i < numPoints; i++) {
 		glVertex2d(midPoints[i].x, midPoints[i].y);
 	}
 	glEnd();
@@ -86,9 +100,9 @@ void drawCircle(double x, double y, double radius) {
 	glEnd();
 }
 
-void drawBisectors() {
+void drawBisectors(int numBisectorsToDraw) {
 	glColor3d(1, 0.7, 0.7);
-	for (int i = 0; i < numPoints; i++) {
+	for (int i = 0; i < numBisectorsToDraw && i < numPoints; i++) {
 		glBegin(GL_LINE_STRIP);
 		glVertex2d(midPoints[i].x, midPoints[i].y);
 		glVertex2d(bisectPoints[i].x, bisectPoints[i].y);
@@ -100,21 +114,40 @@ void drawBisectors() {
 	}
 }
 
+void drawRadius() {
+	glColor3d(0.7, 1, 0.7);
+	glBegin(GL_LINE_STRIP);
+	glVertex2d(points[0].x, points[0].y);
+	glVertex2d(center.x, center.y);
+	glEnd();
+}
+
 void display(void) {
 	glClear(GL_COLOR_BUFFER_BIT);
 
+	// if user only selected 0-2 points, just show them and return
 	if (numPointsSelected < numPoints) {
 		drawPoints();
 		glutSwapBuffers();
 		return;
 	}
 
-	drawCenter();
-	drawCircle(center.x, center.y, radius);
+	// draw components if we're past that stage
+	if (animationStage >= centerStage)
+		drawCenter();
+	if (animationStage >= circleStage)
+		drawCircle(center.x, center.y, radius);
 	drawPoints();
-	drawBisectors();
-	drawCenter();
-	drawMidPoints();
+	if (animationStage >= triangleStage)
+		drawTriangle(animationStage - triangleStage + 1);
+	if (animationStage >= bisectorStage)
+		drawBisectors(animationStage - bisectorStage + 1);
+	if (animationStage >= radiusStage)
+		drawRadius();
+	if (animationStage >= centerStage)
+		drawCenter();
+	if (animationStage >= midpointStage)
+		drawMidPoints(animationStage - midpointStage + 1);
 
 
 	glutSwapBuffers();
@@ -194,8 +227,10 @@ void calculateStuff() {
 void myMouse(int button, int state, int x, int y) {
 	// left button clicked
 	if (state == GLUT_DOWN && button == GLUT_LEFT_BUTTON) {
+		// restart if user clicks after making a complete triangle
 		if (numPointsSelected == numPoints) {
 			numPointsSelected = 0;
+			animationStage = 0;
 		}
 
 		// if we didnt select all the points yet
@@ -217,6 +252,22 @@ void myMouse(int button, int state, int x, int y) {
 	}
 	else if (state == GLUT_DOWN && button == GLUT_RIGHT_BUTTON) {
 		numPointsSelected = 0;
+		animationStage = 0;
+	}
+}
+
+void myKeyboard(unsigned char theKey, int mouseX, int mouseY) {
+	switch (theKey) {
+	case 'a':
+		if (numPointsSelected == numPoints && animationStage < maxAnimationStage) {
+			animationStage++;
+			cout << "animationStage = " << animationStage << "\n";
+		}
+		break;
+	case 'e':
+		exit(0);
+		break;
+	default: break;
 	}
 }
 
@@ -229,6 +280,7 @@ int main(int argc, char** argv) {
 
 	glutDisplayFunc(display);
 	glutMouseFunc(myMouse);
+	glutKeyboardFunc(myKeyboard);
 
 	init();
 	glutMainLoop();
