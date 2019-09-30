@@ -214,7 +214,6 @@ void display(void) {
 		drawCenter();
 	if (animationStage >= circleStage)
 		drawCircle(center.x, center.y, radius);
-	drawPoints();
 	if (animationStage >= triangleStage)
 		drawTriangle(animationStage - triangleStage + 1);
 	if (animationStage >= bisectorStage)
@@ -225,6 +224,7 @@ void display(void) {
 		drawCenter();
 	if (animationStage >= midpointStage)
 		drawMidPoints(animationStage - midpointStage + 1);
+	drawPoints();
 
 
 	glutSwapBuffers();

@@ -66,27 +66,6 @@ void init(void) {
 	loadPolyLineFile(filenameU, uPoints);
 }
 
-void drawPolyLineFile(char* fileName) {
-	fstream inStream;
-	inStream.open(fileName, ios::in);
-	if (inStream.fail())
-		return;
-	glClear(GL_COLOR_BUFFER_BIT);
-	GLint numpolys, numLines, x, y;
-	inStream >> numpolys;
-	for (int j = 0; j < numpolys; j++) {
-		inStream >> numLines;
-		glBegin(GL_LINE_STRIP);
-		for (int i = 0; i < numLines; i++) {
-			inStream >> x >> y;
-			glVertex2i(x, y);
-		}
-		glEnd();
-	}
-	glFlush();
-	inStream.close();
-}
-
 Point lerp(Point a, Point b, double t) {
 	Point c = { a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t };
 	return c;
@@ -147,12 +126,14 @@ void display(void) {
 void myKeyboard(unsigned char theKey, int mouseX, int mouseY) {
 	switch(theKey) {
 	case 'm':
+		animate = 1;
 		animationDirection = 1;
 		iFrame = 0;
 		loopAnimation = 0;
 		glutPostRedisplay();
 		break;
 	case 'u':
+		animate = 1;
 		animationDirection = -1;
 		iFrame = numFrames - 1;
 		loopAnimation = 0;
