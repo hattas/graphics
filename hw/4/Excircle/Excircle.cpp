@@ -11,6 +11,7 @@ struct Point {
 	double x, y;
 };
 
+// add cout support for point
 std::ostream& operator<< (std::ostream& out, Point const& p) {
 	out << "(" << p.x << ", " << p.y << ")";
 	return out;
@@ -30,34 +31,39 @@ const int radiusStage = centerStage + 1;
 const int circleStage = radiusStage + 1;
 const int maxAnimationStage = circleStage;
 
-
 // globals
 Point points[numPoints];
 Point midPoints[numPoints];
+Point bisectPoints[numPoints];
+Point center;
 double slopes[numPoints];
 double perpendicularSlopes[numPoints];
-Point bisectPoints[numPoints];
-int numPointsSelected = 0;
-Point center;
 double radius;
+int numPointsSelected = 0;
 int animationStage = 0;
 
-void init(void) {
-	// open gl init
-	glClearColor(1, 1, 1, 0);
-	glColor3f(0, 0, 0);
-	glPointSize(5);
-	glLineWidth(2);
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	gluOrtho2D(0, screenW, 0, screenH);
-}
-
+/* UTILITY FUNCTIONS */
 Point lerp(Point a, Point b, double t) {
 	Point c = { a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t };
 	return c;
 }
 
+Point intersection(Point p1, double m1, Point p2, double m2) {
+	double num, den, x, y;
+	num = m1 * p1.x - m2 * p2.x - p1.y + p2.y;
+	den = m1 - m2;
+	x = num / den;
+	y = m1 * (x - p1.x) + p1.y;
+	Point p{ x, y };
+	return p;
+}
+
+double distance(Point p1, Point p2) {
+	return sqrt(pow(p1.x - p2.x, 2) + pow(p1.y - p2.y, 2));
+}
+/* END UTILITY FUNCTIONS */
+
+/* DRAWING FUNCTIONS */
 void drawPoints() {
 	glColor3d(0, 0, 0);
 	glBegin(GL_POINTS);
@@ -96,7 +102,7 @@ void drawCircle(double x, double y, double radius) {
 	glColor3d(0, 1, 0);
 	glBegin(GL_LINE_LOOP);
 	for (double i = 0; i < 2 * PI; i += PI / 40)
-		glVertex2f(x + cos(i) * radius, y + sin(i) * radius);
+		glVertex2d((GLdouble)(x + cos(i) * radius), (GLdouble)(y + sin(i) * radius));
 	glEnd();
 }
 
@@ -121,39 +127,9 @@ void drawRadius() {
 	glVertex2d(center.x, center.y);
 	glEnd();
 }
+/* END DRAWING FUNCTIONS */
 
-void display(void) {
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	// if user only selected 0-2 points, just show them and return
-	if (numPointsSelected < numPoints) {
-		drawPoints();
-		glutSwapBuffers();
-		return;
-	}
-
-	// draw components if we're past that stage
-	if (animationStage >= centerStage)
-		drawCenter();
-	if (animationStage >= circleStage)
-		drawCircle(center.x, center.y, radius);
-	drawPoints();
-	if (animationStage >= triangleStage)
-		drawTriangle(animationStage - triangleStage + 1);
-	if (animationStage >= bisectorStage)
-		drawBisectors(animationStage - bisectorStage + 1);
-	if (animationStage >= radiusStage)
-		drawRadius();
-	if (animationStage >= centerStage)
-		drawCenter();
-	if (animationStage >= midpointStage)
-		drawMidPoints(animationStage - midpointStage + 1);
-
-
-	glutSwapBuffers();
-	glutPostRedisplay();
-}
-
+/* CALCULATING FUNCTIONS */
 void calculateMidpoints() {
 	int i, j;
 	for (i = 0; i < numPoints; i++) {
@@ -173,20 +149,6 @@ void calculateSlopes() {
 		cout << "slopes[" << i << "] = " << slopes[i] << "\n";
 		cout << "perpendicularSlopes[" << i << "] = " << perpendicularSlopes[i] << "\n";
 	}
-}
-
-Point intersection(Point p1, double m1, Point p2, double m2) {
-	double num, den, x, y;
-	num = m1 * p1.x - m2 * p2.x - p1.y + p2.y;
-	den = m1 - m2;
-	x = num / den;
-	y = m1 * (x - p1.x) + p1.y;
-	Point p{ x, y };
-	return p;
-}
-
-double distance(Point p1, Point p2) {
-	return sqrt(pow(p1.x - p2.x, 2) + pow(p1.y - p2.y, 2));
 }
 
 void calculateBisectors() {
@@ -222,6 +184,51 @@ void calculateStuff() {
 	calculateMidpoints();
 	calculateBisectors();
 	calculateCenter();
+}
+/* END CALCULATING FUNCTIONS */
+
+/* OPENGL FUNCTIONS */
+void init(void) {
+	// open gl init
+	glClearColor(1, 1, 1, 0);
+	glColor3f(0, 0, 0);
+	glPointSize(5);
+	glLineWidth(2);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluOrtho2D(0, screenW, 0, screenH);
+}
+
+void display(void) {
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	// if user only selected 0-2 points, just show them and return
+	if (numPointsSelected < numPoints) {
+		drawPoints();
+		glutSwapBuffers();
+		return;
+	}
+
+	// draw components if we're past that stage
+	if (animationStage >= centerStage)
+		drawCenter();
+	if (animationStage >= circleStage)
+		drawCircle(center.x, center.y, radius);
+	drawPoints();
+	if (animationStage >= triangleStage)
+		drawTriangle(animationStage - triangleStage + 1);
+	if (animationStage >= bisectorStage)
+		drawBisectors(animationStage - bisectorStage + 1);
+	if (animationStage >= radiusStage)
+		drawRadius();
+	if (animationStage >= centerStage)
+		drawCenter();
+	if (animationStage >= midpointStage)
+		drawMidPoints(animationStage - midpointStage + 1);
+
+
+	glutSwapBuffers();
+	glutPostRedisplay();
 }
 
 void myMouse(int button, int state, int x, int y) {
@@ -270,6 +277,7 @@ void myKeyboard(unsigned char theKey, int mouseX, int mouseY) {
 	default: break;
 	}
 }
+/* END OPENGL FUNCTIONS */
 
 int main(int argc, char** argv) {
 	glutInit(&argc, argv);
