@@ -17,7 +17,10 @@ struct Ball {
 	int radius;
 	double x, y; // position
 	double vx, vy; // velocity
-	GLfloat angle; // angle ball is traveling in
+};
+
+struct Point {
+	double x, y;
 };
 
 // constants
@@ -41,12 +44,17 @@ double launchAngle = 0;
 double launchAngleRadians = 0;
 double currentAngle = 0;
 boolean guideVisible = true;
+int del = 0;
 
-Ball cue = { ballRadius, ballRadius, screenH, 0, 0, 0 };
-Ball eight = { ballRadius, screenW / 2, screenH / 2, 0, 0, 0 };
+Ball cue = { ballRadius, ballRadius, screenH / 2, 0, 0 };
+Ball eight = { ballRadius, screenW / 2, screenH / 2, 0, 0 };
+
+void print(Ball b) {
+	std::cout << "pos: (" << b.x << ", " << b.y << ") vel: (" << b.vx << ", " << b.vy << ")\n";
+}
 
 void color255(int r, int g, int b) {
-	glColor3f((GLfloat)(r / 255.0), (GLfloat)(g / 255.0), (GLfloat)(b / 255.0));
+	glColor3d((GLdouble)(r / 255.0), (GLdouble)(g / 255.0), (GLdouble)(b / 255.0));
 }
 
 void myInit(void) {
@@ -68,7 +76,7 @@ void drawForceBar(void) {
 
 	color255(RED);
 	double percentForce = force / maxForce;
-	glRectf(left, bot, right, ((top - bot) * percentForce + bot));
+	glRectd(left, bot, right, (((double) top - (double) bot) * percentForce + bot));
 }
 
 void drawPoolTable(void) {
@@ -76,10 +84,10 @@ void drawPoolTable(void) {
 	glRectf(0, 0, screenW, screenH);
 }
 
-void drawCircle(GLfloat x, GLfloat y, int radius) {
+void drawCircle(double x, double y, int radius) {
 	glBegin(GL_POLYGON);
-	for (GLfloat i = 0; i < 2 * PI; i += PI / 40)
-		glVertex2f(x + (GLfloat)cos(i) * radius, y + (GLfloat)sin(i) * radius);
+	for (double i = 0; i < 2 * PI; i += PI / 40)
+		glVertex2d(x + cos(i) * radius, y + sin(i) * radius);
 	glEnd();
 }
 
@@ -97,50 +105,69 @@ void drawGuide(void) {
 	if (guideVisible) {
 		color255(WHITE);
 		glBegin(GL_LINE_STRIP);
-		glVertex2f(cue.x, cue.y);
-		glVertex2f(cue.x + guideLength * cos(launchAngleRadians), cue.y + guideLength * sin(launchAngleRadians));
+		glVertex2d(cue.x, cue.y);
+		glVertex2d(cue.x + guideLength * cos(launchAngleRadians), cue.y + guideLength * sin(launchAngleRadians));
 		glEnd();
 	}
 }
 
-boolean moveBalls(void) {
-	// adjust ball positions
+int isCollision() {
+	double distance;
+	distance = sqrt(pow(cue.x - eight.x, 2) + pow(cue.y - eight.y, 2));
+	return distance <= ((double) cue.radius + (double) eight.radius);
+}
+
+void checkWallCollision(Ball *ball) {
+	if ((ball->x - ball->radius) < 0) {
+		ball->x = ball->radius;
+		ball->vx = -ball->vx;
+	}
+	if ((ball->x + ball->radius) > screenW) {
+		ball->x = (double) screenW - (double) ball->radius;
+		ball->vx = -ball->vx;
+	}
+	if ((ball->y - ball->radius) < 0) {
+		ball->y = ball->radius;
+		ball->vy = -ball->vy;
+	}
+	if ((ball->y + ball->radius) > screenH) {
+		ball->y = (double) screenH - (double) ball->radius;
+	}
+}
+
+double velo(Ball *ball) {
+	return sqrt(pow(ball->vx, 2) + pow(ball->vy, 2));
+}
+
+Point ballCollision(Ball* moved, Ball* still) {
+	Point vector = { moved->x - still->x, moved->y - still->y };
+	double magnitude = sqrt(pow(vector.x, 2) + pow(vector.y, 2));
+	vector.x /= magnitude;
+	vector.y /= magnitude;
+	vector.x *= velo(moved);
+	vector.y *= velo(moved);
+	return vector;
+}
+
+int moveBalls(void) {
+	double slope;
+
 	cue.x += cue.vx;
 	cue.y += cue.vy;
+	eight.x += eight.vx;
+	eight.y += eight.vy;
 
-	// check for collisions with the walls
-	if ((cue.x - cue.radius) < 0) {
-		cue.x = cue.radius;
-		cue.vx = -cue.vx;
-	}
-	if ((cue.x + cue.radius) > screenW) {
-		cue.x = screenW - cue.radius;
-		cue.vx = -cue.vx;
-	}
-	if ((cue.y - cue.radius) < 0) {
-		cue.y = cue.radius;
-		cue.vy = -cue.vy;
-	}
-	if ((cue.y + cue.radius) > screenH) {
-		cue.y = screenH - cue.radius;
-		cue.vy = -cue.vy;
+	if (isCollision()) {
+		Point cueNewV = ballCollision(&cue, &eight);
+		Point eightNewV = ballCollision(&eight, &cue);
+		cue.vx = cueNewV.x;
+		cue.vy = cueNewV.y;
+		eight.vy = eightNewV.y;
+		eight.vy = eightNewV.y;
 	}
 
-	if (cue.vx != 0) {
-		currentAngle = atan(cue.vy / cue.vy);
-		cue.vx -= friction * abs(cos(currentAngle));
-		cue.vy -= friction * abs(sin(currentAngle));
-	}
-	else if (cue.vy > 0) {
-		cue.vy -= friction;
-	}
-
-	// check for small velocity and set to 0
-	GLfloat velocityMagnitude = abs(sqrt(cue.vx * cue.vx + cue.vy * cue.vy));
-	if (velocityMagnitude < velocityThreshold) {
-		cue.vx = 0;
-		cue.vy = 0;
-	}
+	checkWallCollision(&cue);
+	checkWallCollision(&eight);
 
 	return true;
 }
@@ -209,7 +236,7 @@ int main(int argc, char** argv) {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 	glutInitWindowSize(screenW, screenH);
-	glutInitWindowPosition(100, 150);
+	glutInitWindowPosition(400, 200);
 	glutCreateWindow("Pool Balls Simulation");
 
 	// register the callback functions
