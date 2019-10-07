@@ -5,6 +5,7 @@
 #include <iostream>
 
 enum Tile { Grass, Water, Fire }; // tile types
+enum Color { GreenLight, GreenMed, GreenDark, RedLight, RedMed, RedDark, OrangeDark, OrangeLight, YellowDark }; // tile types
 
 // constants
 const int screenW = 600;
@@ -13,10 +14,12 @@ const int numTilesHoriz = 60;
 const int numTilesVert = 40;
 const double tileW = screenW / numTilesHoriz;
 const double tileH = screenH / numTilesVert;
-const double tileChance = 0.10;
+const double tileChance = 0.02;
 
 // globals
 Tile tiles[numTilesHoriz][numTilesVert];
+Tile tilesPrevious[numTilesHoriz][numTilesVert];
+
 
 // set up coordinate system, point size, background color, drawing color
 void myInit(void) {
@@ -95,7 +98,7 @@ int checkNeighboringTiles(int i, int j) {
 		for (int l = j - 1; l <= j + 1; l++) {
 			if (l < 0 || l >= numTilesVert || (i == k && j == l))
 				continue;
-			if (tiles[k][l] == Fire) {
+			if (tilesPrevious[k][l] == Fire) {
 				count++;
 			}
 		}
@@ -104,9 +107,17 @@ int checkNeighboringTiles(int i, int j) {
 }
 
 void spreadFire() {
+	// copy tiles to base fire spreading off previous state
 	for (int i = 0; i < numTilesHoriz; i++) {
 		for (int j = 0; j < numTilesVert; j++) {
-			if (tiles[i][j] == Fire)
+			tilesPrevious[i][j] = tiles[i][j];
+		}
+	}
+
+
+	for (int i = 0; i < numTilesHoriz; i++) {
+		for (int j = 0; j < numTilesVert; j++) {
+			if (tilesPrevious[i][j] == Fire)
 				continue;
 			int numNeighbors = checkNeighboringTiles(i, j);
 			double chance = tileChance * numNeighbors;
