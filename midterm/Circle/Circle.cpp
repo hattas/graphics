@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 	glutInitWindowSize(SCREEN_W, SCREEN_H);
-	glutInitWindowPosition(500, 300);
+	glutInitWindowPosition(100, 100);
 	glutCreateWindow("Midterm: Circle");
 
 	glutDisplayFunc(display);

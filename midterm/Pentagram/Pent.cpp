@@ -96,7 +96,7 @@ void main(int argc, char** argv) {
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glutInitWindowSize(SCREEN_W, SCREEN_H);
-	glutCreateWindow("Rosette");
+	glutCreateWindow("Midterm: Recursive Pentagram");
 	glutDisplayFunc(render);// register the callback for the display function
 	myInit();
 	glutMainLoop();
