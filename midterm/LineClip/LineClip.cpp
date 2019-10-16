@@ -93,8 +93,6 @@ void display(void) {
 	drawWindow();
 
 	if (lineVisible && numPoints == 2) {
-		glColor3d(0.8, 0.8, 0.8);
-		drawLine(startA, startB);
 		glColor3d(1, 0, 0);
 		drawLine(A, B);
 		drawPoint(A);
@@ -108,6 +106,8 @@ void display(void) {
 	else if (numPoints == 2) {
 		drawPoint(startA);
 		drawPoint(startB);
+		glColor3d(0.8, 0.8, 0.8);
+		drawLine(startA, startB);
 	}
 
 	glFlush();
