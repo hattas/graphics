@@ -13,32 +13,33 @@ Mesh* myMesh = new Mesh();
 
 
 void myKeyboard(unsigned char key, int x, int y) {
+	float moveAmount = .01;
 	switch (key) {
 	case 'F':
-		camera.slide(0, 0, .25);
+		camera.slide(0, 0, moveAmount);
 		break;
 	case 'f':
-		camera.slide(0, 0, -0.25);
+		camera.slide(0, 0, -moveAmount);
 		break;
 	case 'W':
 	case 'w':
-		camera.slide(0, .25, 0);
+		camera.slide(0, moveAmount, 0);
 		break;
 	case 'Z':
-		camera.slide(0, .25, 0);
+		camera.slide(0, moveAmount, 0);
 		break;
 	case 'z':
-		camera.slide(0, -.25, 0);
+		camera.slide(0, -moveAmount, 0);
 		break;
 	case 'S':
-		camera.slide(-.30, 0, 0);
+		camera.slide(-moveAmount, 0, 0);
 		break;
 	case 's':
-		camera.slide(.30, 0, 0);
+		camera.slide(moveAmount, 0, 0);
 		break;
 	case 'A':
 	case 'a':
-		camera.slide(-.30, 0, 0);
+		camera.slide(-moveAmount, 0, 0);
 		break;
 	case 'P':
 		//case 80:
@@ -114,8 +115,7 @@ void setViewport(int left, int right, int bottom, int top) {
 	glViewport(left, bottom, right - left, top - bottom);
 }
 
-void myReshape(GLsizei W, GLsizei H)
-{
+void myReshape(GLsizei W, GLsizei H) {
 	if (R > W / H)
 		setViewport(0, W, 0, W / R);
 	else
@@ -141,7 +141,7 @@ void main(int argc, char** argv) {
 
 	glViewport(0, 0, 640, 480);
 
-	camera.set(0, 0, 40, 0, 0, 0, 0, 1, 0);
+	camera.set(2, 1, 2, 0.6, .4, 0.6, 0, 1, 0);
 	camera.setShape(35.0f, 64.0f / 48.0f, 0.5f, 140.0f);
 
 	scn.read("myScene1.dat");
