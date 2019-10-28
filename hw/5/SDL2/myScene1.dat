@@ -10,6 +10,7 @@ light 4 3 4 .7 .7 .7
 ambient .7 .7 .7
 diffuse .6 .6 .6
 specular 1 1 1
+specularExponent 2
 
 def wall {
 	push
