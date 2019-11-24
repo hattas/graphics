@@ -1,6 +1,6 @@
 #include <cmath>
 #include <vector>
-#include <iostream.h>
+#include <iostream>
 #include <fstream>
 
 #include "GlutWin.h"
