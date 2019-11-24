@@ -7,6 +7,8 @@
 #include "Camera.h"
 #include "Vector3.h"
 
+#define MOUSE_CONTROL 0
+
 using namespace std;
 
 GlutWin* win;
@@ -84,6 +86,28 @@ void calculate_surface() {
 
 }
 
+// set camera viewing positions
+void set_camera(int position) {
+	float ex, ey, ez, lx, ly, lz, upx, upy, upz;
+
+	// camera position
+	ex = 10 + position * 10;
+	ey = 10 + position * 5;
+	ez = 0;
+
+	// look point - center of scene
+	lx = 0;
+	ly = 10;
+	lz = 0;
+
+	// camera orientation - this is regular/not rotated
+	upx = 0;
+	upy = 1;
+	upz = 0;
+
+	camera->set(ex, ey, ez, lx, ly, lz, upx, upy, upz);
+}
+
 bool initdemo() {
 
 	// initialize GLUT class
@@ -94,7 +118,7 @@ bool initdemo() {
 
 
 	camera = new Camera();
-	camera->set(5, 5, 5, 0, 5, 5, 0, 1, 0);
+	set_camera(2);
 
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 	glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
@@ -191,19 +215,24 @@ void render() {
 	glutPostRedisplay();
 }
 
-
 void kb_input(unsigned char key, int x, int y) {
 
 	switch (key) {
 
-	case 'a':	camera->slide(-1.0, 0.0, 0.0); break;
-	case 'd':	camera->slide(1.0, 0.0, 0.0); break;
-	case 's':	camera->slide(0.0, 0.0, 1.0); break;
-	case 'w':	camera->slide(0.0, 0.0, -1.0); break;
-	case '+':	if (n_waist < 30) n_waist++; calculate_surface(); break;
-	case '-':	if (n_waist > 3) n_waist--; calculate_surface(); break;
-	case 'q':	exit(0);
+	case 'a': camera->slide(-1.0, 0.0, 0.0); break;
+	case 'd': camera->slide(1.0, 0.0, 0.0); break;
+	case 's': camera->slide(0.0, 0.0, 1.0); break;
+	case 'w': camera->slide(0.0, 0.0, -1.0); break;
+	case '+': if (n_waist < 30) n_waist++; calculate_surface(); break;
+	case '-': if (n_waist > 3) n_waist--; calculate_surface(); break;
+	case 'q': exit(0); break;
 	default:	break;
+	}
+
+	if (key >= '0' && key <= '9') {
+		if (key == '0') // make 0 into 10 to reflect keyboard order
+			key += 10;
+		set_camera(key - '0');
 	}
 
 	glutPostRedisplay();
@@ -224,6 +253,9 @@ void mouse_motion(int x, int y) {
 		dx = x - mouse_x;
 		dy = y - mouse_y;
 
+		// invert vertical
+		dy *= -1;
+
 		mouse_x = x;
 		mouse_y = y;
 
@@ -241,7 +273,9 @@ int main() {
 	if (initdemo()) {
 		glutDisplayFunc(render);
 		glutKeyboardFunc(kb_input);
+#if MOUSE_CONTROL
 		glutPassiveMotionFunc(mouse_motion);
+#endif
 
 		glutMainLoop();
 
