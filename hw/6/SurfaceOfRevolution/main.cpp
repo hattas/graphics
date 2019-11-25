@@ -19,17 +19,25 @@ float mouse_x, mouse_y;
 
 bool mouse_updated = false;
 
+const int numObjects = 2;
+
 // vector to contain coordinates of "profile"
 typedef vector<Vector3> profile_t;
-profile_t profile;
+profile_t profiles[numObjects];
 
 typedef vector<profile_t> surface_t;
-surface_t surface;
+surface_t surfaces[numObjects];
+
+char filenames[numObjects][255] = { "bowl.dat", "plate.dat" };
+
+float material_amb[numObjects][4] = { {1, 1, 1, 1.0}, {0.7, 0.4, 0.3, 1.0} };
+float material_dif[numObjects][4] = { {1.0, 1.0, 0, 1.0}, {1.0, 1.0, 0, 1.0} };
+
 
 // number of waists to calculate
-int n_waist = 10;
+int n_waist = 20;
 
-void load_profile(const char* filename) {
+void load_profile(const char* filename, profile_t* profile) {
 
 	ifstream i = ifstream(filename, ios_base::in);
 	int n_points;
@@ -40,7 +48,7 @@ void load_profile(const char* filename) {
 	for (int c = 0; c < n_points && !i.eof(); c++) {
 		i >> x >> y;
 		cout << x << " " << y << endl;
-		profile.push_back(Vector3(x, y, 0.0));
+		profile->push_back(Vector3(x, y, 0.0));
 	}
 
 	i.close();
@@ -54,7 +62,7 @@ Vector3 matrixmult(float mat[], Vector3 v) {
 
 }
 
-void calculate_surface() {
+void calculate_surface(profile_t* profile, surface_t* surface) {
 
 	const double PI = 3.141592654;
 	double ang_incr = (2.0 * PI) / (double)n_waist;
@@ -62,7 +70,7 @@ void calculate_surface() {
 	profile_t waist;
 	Vector3 p;
 
-	surface.clear();
+	surface->clear();
 
 	for (double theta = 0.0; theta <= 2 * PI; theta += ang_incr) {
 		waist.clear();
@@ -75,13 +83,13 @@ void calculate_surface() {
 		mat[3] = 0.0;		  mat[7] = 0.0; mat[11] = 0.0;		   mat[15] = 1.0;
 
 		// rotate profile
-		for (int i = 0; i < profile.size(); i++) {
-			p = matrixmult(mat, profile[i]);
+		for (int i = 0; i < profile->size(); i++) {
+			p = matrixmult(mat, (*profile)[i]);
 			waist.push_back(p);
 		}
 
 		// add to surface
-		surface.push_back(waist);
+		surface->push_back(waist);
 	}
 
 }
@@ -126,8 +134,10 @@ bool initdemo() {
 	// enable depth testing
 	glEnable(GL_DEPTH_TEST);
 
-	load_profile("HLGOBLET.DAT");
-	calculate_surface();
+	for (int i = 0; i < numObjects; i++) {
+		load_profile(filenames[i], &profiles[i]);
+		calculate_surface(&profiles[i], &surfaces[i]);
+	}
 
 	// set up lighting in ogl
 	glEnable(GL_LIGHTING);
@@ -136,41 +146,34 @@ bool initdemo() {
 	float light_dif[] = { 0.25, 0.25, 0.25, 1.0 };
 	float light_pos[] = { 10.0, 10.0, 10.0, 1.0 };
 
-	float material_amb[] = { 1.0, 1.0, 1.0, 1.0 };
-	float material_dif[] = { 1.0, 1.0, 1.0, 1.0 };
-
-	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, material_amb);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, material_dif);
-
 	glLightfv(GL_LIGHT0, GL_AMBIENT, light_amb);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_dif);
-
 	glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
 
 	glEnable(GL_LIGHT0);
 
+	cout << "init done" << endl;
+
 	return(true);
 }
 
-void render() {
-
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the screen
-
+void renderSurface(surface_t* surface) {
+	cout << "in render surface" << endl;
 	glBegin(GL_QUADS);
 
-	for (int w = 0; w < surface.size(); w++) {
+	for (int w = 0; w < surface->size(); w++) {
 
-		profile_t curr_waist = surface[w];
-		profile_t next_waist = surface[(w + 1) % surface.size()];
+		profile_t curr_waist = (*surface)[w];
+		profile_t next_waist = (*surface)[(w + 1) % surface->size()];
 
 		// draw each waist connected to the next
-		for (int p = 0; p < surface[w].size() - 1; p++) {
-
+		for (int p = 0; p < (*surface)[w].size() - 1; p++) {
+			cout << "w=" << w << " p=" << p << endl;
 			Vector3 p0, p1, p2, p3, norm;
 
 			p0 = curr_waist[p];
 			p1 = next_waist[p];
-			p2 = next_waist[p + 1];
+			p2 = next_waist[p + 1]; // failing here
 			p3 = curr_waist[p + 1];
 
 			// find per surface normal (eqn 6.1)
@@ -209,10 +212,25 @@ void render() {
 	}
 
 	glEnd();
+}
+
+void render() {
+
+	cout << "starting render" << endl;
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the screen
+
+	for (int i = 0; i < numObjects; i++) {
+		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, material_amb[i]);
+		glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, material_dif[i]);
+
+		renderSurface(&surfaces[i]);
+	}
 
 	// refresh image
 	glutSwapBuffers();
-	glutPostRedisplay();
+
+	cout << "done render" << endl;
 }
 
 void kb_input(unsigned char key, int x, int y) {
@@ -223,8 +241,6 @@ void kb_input(unsigned char key, int x, int y) {
 	case 'd': camera->slide(1.0, 0.0, 0.0); break;
 	case 's': camera->slide(0.0, 0.0, 1.0); break;
 	case 'w': camera->slide(0.0, 0.0, -1.0); break;
-	case '+': if (n_waist < 30) n_waist++; calculate_surface(); break;
-	case '-': if (n_waist > 3) n_waist--; calculate_surface(); break;
 	case 'q': exit(0); break;
 	default:	break;
 	}
@@ -284,14 +300,3 @@ int main() {
 	}
 
 }
-
-
-
-
-
-
-
-
-
-
-
