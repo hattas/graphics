@@ -1,4 +1,4 @@
-#include <cmath>
+#include <cmath>,
 #include <vector>
 #include <iostream>
 #include <fstream>
@@ -11,31 +11,25 @@
 
 using namespace std;
 
+typedef vector<Vector3> profile_t;
+typedef vector<profile_t> surface_t;
+
 GlutWin* win;
 Camera* camera;
 
-// mouse cursor position
-float mouse_x, mouse_y;
+// constants
+const int numObjects = 3;
+const float material_amb[numObjects][4] = { {1, 1, 1, 1.0}, {0.7, 0.4, 0.3, 1.0}, {0.3, 0.8, 0.3, 1.0} };
+const float material_dif[] = {1.0, 1.0, 0, 1.0};
+const char filenames[numObjects][255] = { "bowl.dat", "plate.dat", "soup.dat" };
+const int n_waist = 20;
 
+// globals
+float mouse_x, mouse_y;
 bool mouse_updated = false;
 
-const int numObjects = 2;
-
-// vector to contain coordinates of "profile"
-typedef vector<Vector3> profile_t;
 profile_t profiles[numObjects];
-
-typedef vector<profile_t> surface_t;
 surface_t surfaces[numObjects];
-
-char filenames[numObjects][255] = { "bowl.dat", "plate.dat" };
-
-float material_amb[numObjects][4] = { {1, 1, 1, 1.0}, {0.7, 0.4, 0.3, 1.0} };
-float material_dif[numObjects][4] = { {1.0, 1.0, 0, 1.0}, {1.0, 1.0, 0, 1.0} };
-
-
-// number of waists to calculate
-int n_waist = 20;
 
 void load_profile(const char* filename, profile_t* profile) {
 
@@ -100,8 +94,8 @@ void set_camera(int position) {
 
 	// camera position
 	ex = 10 + position * 10;
-	ey = 10 + position * 5;
-	ez = 0;
+	ey = 5 + position * 5;
+	ez = 10;
 
 	// look point - center of scene
 	lx = 0;
@@ -158,7 +152,6 @@ bool initdemo() {
 }
 
 void renderSurface(surface_t* surface) {
-	cout << "in render surface" << endl;
 	glBegin(GL_QUADS);
 
 	for (int w = 0; w < surface->size(); w++) {
@@ -168,7 +161,6 @@ void renderSurface(surface_t* surface) {
 
 		// draw each waist connected to the next
 		for (int p = 0; p < (*surface)[w].size() - 1; p++) {
-			cout << "w=" << w << " p=" << p << endl;
 			Vector3 p0, p1, p2, p3, norm;
 
 			p0 = curr_waist[p];
@@ -216,21 +208,17 @@ void renderSurface(surface_t* surface) {
 
 void render() {
 
-	cout << "starting render" << endl;
-
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the screen
 
 	for (int i = 0; i < numObjects; i++) {
 		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, material_amb[i]);
-		glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, material_dif[i]);
+		glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, material_dif);
 
 		renderSurface(&surfaces[i]);
 	}
 
 	// refresh image
 	glutSwapBuffers();
-
-	cout << "done render" << endl;
 }
 
 void kb_input(unsigned char key, int x, int y) {
