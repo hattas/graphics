@@ -19,10 +19,14 @@ Camera* camera;
 
 // constants
 const int numObjects = 3;
-const float material_amb[numObjects][4] = { {1, 1, 1, 1.0}, {0.7, 0.4, 0.3, 1.0}, {0.3, 0.8, 0.3, 1.0} };
-const float material_dif[] = {1.0, 1.0, 0, 1.0};
+const float material_amb[numObjects][4] = { {249 / 255.0,248 / 255.0,246 / 255.0, 1.0}, {98 / 255.0,70 / 255.0,53 / 255.0, 1.0}, {159 / 255.0,209 / 255.0,125 / 255.0, 1.0} };
+const float material_dif[] = { 1.0, 1.0, 0, 1.0 };
 const char filenames[numObjects][255] = { "bowl.dat", "plate.dat", "soup.dat" };
-const int n_waist = 20;
+const int n_waist = 1000;
+const float zero[] = { 0, 0, 0, 1 };
+const float light_amb[] = { 0.5, 0.5, 0.5, 1.0 };
+const float light_dif[] = { 0.25, 0.25, 0.25, 1.0 };
+const float light_pos[] = { 0, 10, -30, 1.0 };
 
 // globals
 float mouse_x, mouse_y;
@@ -92,25 +96,64 @@ void calculate_surface(profile_t* profile, surface_t* surface) {
 void set_camera(int position) {
 	float ex, ey, ez, lx, ly, lz, upx, upy, upz;
 
-	// camera position
-	ex = 10 + position * 10;
-	ey = 5 + position * 5;
-	ez = 10;
+	ex = 30;
+	ey = 40;
+	ez = -15;
 
-	// look point - center of scene
 	lx = 0;
-	ly = 10;
-	lz = 0;
+	ly = 5;
+	lz = -15;
 
 	// camera orientation - this is regular/not rotated
 	upx = 0;
 	upy = 1;
 	upz = 0;
 
+	switch (position) {
+	case 1:
+		ex = 30;
+		ey = 20;
+		ez = -15;
+
+		lx = 0;
+		ly = 5;
+		lz = -15;
+		break;
+	case 2:
+		ex = 30;
+		ey = -10;
+		ez = -15;
+
+		lx = 0;
+		ly = 5;
+		lz = -15;
+		break;
+	case 3:
+		ex = 30;
+		ey = 30;
+		ez = 0;
+
+		lx = 0;
+		ly = 10;
+		lz = -15;
+		break;
+	case 4:
+		ex = -30;
+		ey = 20;
+		ez = -15;
+
+		lx = 0;
+		ly = 5;
+		lz = -15;
+		break;
+	default:
+		break;
+	}
 	camera->set(ex, ey, ez, lx, ly, lz, upx, upy, upz);
 }
 
 bool initdemo() {
+
 
 	// initialize GLUT class
 	win = new GlutWin(600, 800,
@@ -118,9 +161,8 @@ bool initdemo() {
 		GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH,
 		"Surface Of Revolution Demo");
 
-
-	camera = new Camera();
-	set_camera(2);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
 
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 	glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
@@ -136,15 +178,14 @@ bool initdemo() {
 	// set up lighting in ogl
 	glEnable(GL_LIGHTING);
 
-	float light_amb[] = { 0.5, 0.5, 0.5, 1.0 };
-	float light_dif[] = { 0.25, 0.25, 0.25, 1.0 };
-	float light_pos[] = { 10.0, 10.0, 10.0, 1.0 };
-
 	glLightfv(GL_LIGHT0, GL_AMBIENT, light_amb);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_dif);
 	glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
 
 	glEnable(GL_LIGHT0);
+
+	camera = new Camera();
+	set_camera(1);
 
 	cout << "init done" << endl;
 
@@ -206,7 +247,17 @@ void renderSurface(surface_t* surface) {
 	glEnd();
 }
 
+void drawSphere() {
+	float sphere_amb[] = { 235 / 255.0, 185 / 255.0, 73 / 255.0, 1 };
+	glPushMatrix();
+	glTranslatef(0, 10, -30);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, sphere_amb);
+	glutSolidSphere(8, 100, 100);
+	glPopMatrix();
+}
+
 void render() {
+
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the screen
 
@@ -217,8 +268,12 @@ void render() {
 		renderSurface(&surfaces[i]);
 	}
 
+	//drawStand();
+	drawSphere();
+
 	// refresh image
 	glutSwapBuffers();
+	glutPostRedisplay();
 }
 
 void kb_input(unsigned char key, int x, int y) {
