@@ -7,8 +7,6 @@
 #include "Camera.h"
 #include "Vector3.h"
 
-#define MOUSE_CONTROL 0
-
 using namespace std;
 
 typedef vector<Vector3> profile_t;
@@ -21,17 +19,23 @@ Camera* camera;
 const int numObjects = 3;
 const float material_amb[numObjects][4] = { {249 / 255.0,248 / 255.0,246 / 255.0, 1.0}, {98 / 255.0,70 / 255.0,53 / 255.0, 1.0}, {159 / 255.0,209 / 255.0,125 / 255.0, 1.0} };
 const float material_dif[] = { 1.0, 1.0, 0, 1.0 };
+const float sphere_amb[] = { 235 / 255.0, 185 / 255.0, 73 / 255.0, 1 };
+const float stand_amb[] = { 98 / 255.0,70 / 255.0,53 / 255.0, 1.0 };
 const char filenames[numObjects][255] = { "bowl.dat", "plate.dat", "soup.dat" };
 const int n_waist = 1000;
 const float zero[] = { 0, 0, 0, 1 };
 const float light_amb[] = { 0.5, 0.5, 0.5, 1.0 };
 const float light_dif[] = { 0.25, 0.25, 0.25, 1.0 };
-const float light_pos[] = { 0, 10, -30, 1.0 };
+const float light_pos[] = { 30, 10, -40, 1.0 };
+const float SPHERE_RADIUS = 10;
+const float SPHERE_X = 30;
+float SPHERE_Y = SPHERE_RADIUS / 2 + 6;
+const float SPHERE_Z = 0;
+float standX = SPHERE_X;
+float standZ = SPHERE_Z;
+float ex, ey, ez, lx, ly, lz, upx, upy, upz;
 
 // globals
-float mouse_x, mouse_y;
-bool mouse_updated = false;
-
 profile_t profiles[numObjects];
 surface_t surfaces[numObjects];
 
@@ -94,62 +98,59 @@ void calculate_surface(profile_t* profile, surface_t* surface) {
 
 // set camera viewing positions
 void set_camera(int position) {
-	float ex, ey, ez, lx, ly, lz, upx, upy, upz;
 
-	ex = 30;
-	ey = 40;
-	ez = -15;
+	ex = 0;
+	ey = SPHERE_X / 2;
+	ez = -40;
 
-	lx = 0;
-	ly = 5;
-	lz = -15;
+	lx = SPHERE_X / 2;
+	ly = 10;
+	lz = 0;
 
-	// camera orientation - this is regular/not rotated
+	// camera up vector
 	upx = 0;
-	upy = 1;
+	upy = -1;
 	upz = 0;
 
 	switch (position) {
 	case 1:
-		ex = 30;
-		ey = 20;
-		ez = -15;
-
-		lx = 0;
-		ly = 5;
-		lz = -15;
+		ey = 10;
+		ez = -40;
 		break;
 	case 2:
-		ex = 30;
-		ey = -10;
-		ez = -15;
-
-		lx = 0;
-		ly = 5;
-		lz = -15;
+		ex = -40;
+		ey = 20;
+		ez = -20;
+		upy = 1;
 		break;
 	case 3:
-		ex = 30;
-		ey = 30;
-		ez = 0;
-
-		lx = 0;
-		ly = 10;
-		lz = -15;
+		ex = 40;
+		ey = 20;
+		ez = 20;
+		upy = 1;
 		break;
 	case 4:
-		ex = -30;
-		ey = 20;
-		ez = -15;
-
+		ex = 40;
+		ey = -10;
+		ez = 20;
+		upy = 1;
 		lx = 0;
-		ly = 5;
-		lz = -15;
+		ly = 0;
+		lz = 0;
 		break;
 	default:
 		break;
 	}
 	camera->set(ex, ey, ez, lx, ly, lz, upx, upy, upz);
+}
+
+void doLighting() {
+	glEnable(GL_LIGHTING);
+	glLightfv(GL_LIGHT0, GL_AMBIENT, light_amb);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_dif);
+	glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
+
+	glEnable(GL_LIGHT0);
 }
 
 bool initdemo() {
@@ -175,17 +176,10 @@ bool initdemo() {
 		calculate_surface(&profiles[i], &surfaces[i]);
 	}
 
-	// set up lighting in ogl
-	glEnable(GL_LIGHTING);
-
-	glLightfv(GL_LIGHT0, GL_AMBIENT, light_amb);
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_dif);
-	glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
-
-	glEnable(GL_LIGHT0);
-
 	camera = new Camera();
 	set_camera(1);
+
+	doLighting();
 
 	cout << "init done" << endl;
 
@@ -248,32 +242,67 @@ void renderSurface(surface_t* surface) {
 }
 
 void drawSphere() {
-	float sphere_amb[] = { 235 / 255.0, 185 / 255.0, 73 / 255.0, 1 };
 	glPushMatrix();
-	glTranslatef(0, 10, -30);
+	glTranslatef(SPHERE_X, SPHERE_Y, SPHERE_Z);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, sphere_amb);
-	glutSolidSphere(8, 100, 100);
+	glutSolidSphere(SPHERE_RADIUS, 100, 100);
+	glPopMatrix();
+}
+
+void drawStandEdge(float x, float y, float z, float rotx, float roty, float rotz, float angle) {
+	glPushMatrix();
+	glTranslatef(x, y, z);
+	if (angle && (rotx || roty || rotz))
+		glRotatef(angle, rotx, roty, rotz);
+	glScalef(1, 0.2, 0.2);
+	glutSolidCube(1);
+	glPopMatrix();
+}
+
+void drawStand() {
+	float len = 1, wid = 0.2;
+	float off = len / 2 - wid / 2;
+
+	// set color
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, stand_amb);
+	
+	// move entire stand
+	glPushMatrix();
+	glTranslatef(standX, 0, standZ);
+	glRotatef(-45, 1, 0, 1);
+	glScalef(10, 10, 10);
+
+	drawStandEdge(-off, 0, 0, 0, 1, 0, 90); // parallel with camera bottom left
+	drawStandEdge(0, 0, off, 0, 0, 0, 0); // horizontal bottom back
+	drawStandEdge(-off, off, -off, 0, 0, 1, 90); // vertical front
+	drawStandEdge(0, off * 2, -off, 0, 0, 0, 0); // horizontal top front left
+	drawStandEdge(off, off * 2, 0, 0, 1, 0, 90); // parallel with camera top right
+	drawStandEdge(off, off, off, 0, 0, 1, 90); // vertical back right
+
+	// end moving entire stand
 	glPopMatrix();
 }
 
 void render() {
 
-
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the screen
 
+	
 	for (int i = 0; i < numObjects; i++) {
 		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, material_amb[i]);
 		glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, material_dif);
 
 		renderSurface(&surfaces[i]);
 	}
+	
 
-	//drawStand();
+	drawStand();
 	drawSphere();
+
+	doLighting();
 
 	// refresh image
 	glutSwapBuffers();
-	glutPostRedisplay();
 }
 
 void kb_input(unsigned char key, int x, int y) {
@@ -284,7 +313,17 @@ void kb_input(unsigned char key, int x, int y) {
 	case 'd': camera->slide(1.0, 0.0, 0.0); break;
 	case 's': camera->slide(0.0, 0.0, 1.0); break;
 	case 'w': camera->slide(0.0, 0.0, -1.0); break;
-	case 'q': exit(0); break;
+	case 'q': camera->slide(0.0, 1.0, 0.0); break;
+	case 'e': camera->slide(0.0, -1.0, 0.0); break;
+	case 'r': SPHERE_Y += 0.1; break;
+	case 'f': SPHERE_Y -= 0.1; break;
+	case 'j': standX += 0.1; break;
+	case 'l': standX -= 0.1; break;
+	case 'i': standZ += 0.1; break;
+	case 'k': standZ -= 0.1; break;
+	case 'o': glOrtho(-1.0, 1.0, -1.0, 1.0, -100, 100);break;
+	case 'p':  break;
+
 	default:	break;
 	}
 
@@ -297,44 +336,12 @@ void kb_input(unsigned char key, int x, int y) {
 	glutPostRedisplay();
 }
 
-void mouse_motion(int x, int y) {
-
-	float dx, dy;
-
-	if (!mouse_updated) {
-		mouse_x = x;
-		mouse_y = y;
-
-		mouse_updated = true;
-	}
-	else {
-		// calc delta
-		dx = x - mouse_x;
-		dy = y - mouse_y;
-
-		// invert vertical
-		dy *= -1;
-
-		mouse_x = x;
-		mouse_y = y;
-
-		// determine rotation amount
-
-		camera->pitch(dy / 5.0);
-		camera->yaw(dx);
-	}
-
-}
-
 int main() {
 
 	// init
 	if (initdemo()) {
 		glutDisplayFunc(render);
 		glutKeyboardFunc(kb_input);
-#if MOUSE_CONTROL
-		glutPassiveMotionFunc(mouse_motion);
-#endif
 
 		glutMainLoop();
 
